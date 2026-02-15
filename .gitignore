@@ -12,3 +12,7 @@ node_modules
 out/
 dist/
 code.js
+
+# AI Persona
+.ai/CONVENTION.md
+.ai/GEMINI.md
