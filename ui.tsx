@@ -9,13 +9,24 @@ const Spinner = ({ variant = 'default' }: { variant?: 'default' | 'light' }) => 
 );
 
 // DOL 브랜드 스타일 System Prompt (Gemini에 전달)
+// LoRA 트리거 워드 'in the style of DOL'을 반드시 포함하도록 규칙에 명시
 const ENHANCER_SYSTEM_PROMPT = `역할: 너는 'DOL' 브랜드의 3D 에셋 프롬프트 엔지니어다.
 
-입력: 사용자의 날것의 아이디어 (예: "깨진 유리", "사이버 폁크 의자").
+입력: 사용자의 날것의 아이디어
 
 출력: Replicate Flux 모델에 넣을 영문 프롬프트 단 하나.
 
-스타일 규칙: 3D render, fragmented terrain chunks floating in a white background #ffffff, dystopian atmosphere, high contrast, cinematic lighting, sharp edges, rough rock and sparse grass, jagged landmasses, isolated pieces of ground, dark environment, detailed weathering.
+스타일 규칙: High-fidelity 3D render icon, #ffffff white background, Data Moshing, dramatic studio lighting, glossy textures, floating small white squares, pixelated data artifacts, surreal digital glitch aesthetic.
+
+필수 규칙:
+
+프롬프트 처음에 반드시 "in the style of DOL"을 포함할 것. (LoRA 트리거 워드)
+
+사용자의 날것의 아이디어에 대한 조사를 해서 프롬프트 디테일에 추가할 것.
+
+단순한 태그 나열보다는 자연스러운 문장 형태로 서술할 것.
+
+피사체는 항상 화면 중앙에 부유하는 형태로 묘사할 것.
 
 출력 형식: 설명 없이 오직 프롬프트 텍스트만 반환할 것.`;
 
@@ -101,7 +112,7 @@ function App() {
         }
     };
 
-    // Replicate flux-schnell 모델로 이미지 생성.
+    // DOL LoRA 모델(username260104/dolfluxlora)로 이미지 생성.
     // 흐름: 1) API 호출 → 2) 폴링(미완료 시) → 3) 이미지 다운로드 → 4) 프리뷰 표시
     const onGenerate = async () => {
         if (!prompt) return;
@@ -109,15 +120,22 @@ function App() {
 
         try {
             // 1단계: Replicate API로 이미지 생성 요청 (로컬 프록시 경유)
+            // 커스텀 학습 모델은 /v1/predictions + version 형식으로 호출해야 함
             const res = await fetch(`${SERVER_URL}/api/replicate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    url: 'https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions',
+                    url: 'https://api.replicate.com/v1/predictions',
                     method: 'POST',
+                    version: '2cd10ef9753da87b7b691018bcdcd695c844a02e75542db7950cd19cb7be71f6',
                     input: {
-                        prompt: prompt,
-                        go_fast: true,
+                        // LoRA 트리거 워드가 없으면 자동으로 추가
+                        prompt: prompt.toLowerCase().includes('in the style of dol')
+                            ? prompt
+                            : `${prompt}, in the style of DOL`,
+                        model: 'schnell',
+                        lora_scale: 1,
+                        num_inference_steps: 4,
                         megapixels: '1',
                         num_outputs: 1,
                         aspect_ratio: '1:1',
@@ -128,6 +146,13 @@ function App() {
             });
 
             let prediction = await res.json();
+            // Rate Limit 초과 시 명확한 에러 메시지 표시
+            if (res.status === 429) {
+                throw new Error('API 요청 제한 초과! 잠시(30초~1분) 후 다시 시도해주세요.');
+            }
+            if (!res.ok) {
+                throw new Error(`API 요청 실패: ${res.status} - ${prediction.error || prediction.detail || ''}`);
+            }
             let imageUrl = null;
 
             // 2단계: Prefer: wait 헤더로 즉시 응답을 기대하지만,

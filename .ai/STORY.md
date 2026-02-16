@@ -1,6 +1,12 @@
 # 📜 변경 이력 (History)
 
-## 2026-02-16
+## 2026-02-17
+### 🎨 DOL LoRA 모델 적용 (Custom Fine-tuned Model)
+- **변경**: Create 탭 이미지 생성 모델을 `black-forest-labs/flux-schnell`에서 DOL 전용 LoRA 모델(`username260104/dolfluxlora`)로 교체.
+- **파라미터 변경**: `go_fast` 제거, `model: 'schnell'`, `lora_scale: 1`, `num_inference_steps: 4` 추가.
+- **파일**: `ui.tsx` — `onGenerate` 함수의 API 엔드포인트 및 input 파라미터 수정.
+
+
 ### 🧹 코드 마무리 정리 (Production Cleanup)
 - **디버그 로그 제거**: `ui.tsx`(9개), `code.ts`(4개), `server.js`(디버그 블록) — 모든 `console.log` 삭제. `console.error`는 에러 핸들링용으로 유지.
 - **주석 보강**: API 호출부(Gemini, Replicate), Figma 메시지 처리부, 각 Edit 핸들러에 "왜 이 코드가 필요한지" 설명 주석 추가.

@@ -24,11 +24,11 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // ============================================================
 //  POST /api/replicate — Replicate API 중계
-//  body: { url, method?, input?, headers? }
+//  body: { url, method?, version?, input?, headers? }
 // ============================================================
 app.post('/api/replicate', async (req, res) => {
     try {
-        const { url, method = 'POST', input, headers: extraHeaders } = req.body;
+        const { url, method = 'POST', version, input, headers: extraHeaders } = req.body;
 
         if (!url) return res.status(400).json({ error: 'url is required' });
         if (!REPLICATE_API_KEY) return res.status(500).json({ error: 'REPLICATE_API_KEY not configured' });
@@ -46,8 +46,11 @@ app.post('/api/replicate', async (req, res) => {
         };
 
         // POST일 때만 body 전달
+        // 커스텀 학습 모델은 version 필드가 필요 (/v1/predictions 엔드포인트)
         if (method === 'POST' && input !== undefined) {
-            fetchOptions.body = JSON.stringify({ input });
+            const body = { input };
+            if (version) body.version = version;
+            fetchOptions.body = JSON.stringify(body);
         }
 
         const apiRes = await fetch(url, fetchOptions);

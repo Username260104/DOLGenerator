@@ -27,7 +27,7 @@ Figma 캔버스에서 이미지를 선택하면 자동 로드. 아래 기능 버
   - 4개 엔드포인트: `/api/replicate`, `/api/replicate/poll`, `/api/gemini`, `/api/proxy-image`
 - **AI 모델**:
   - Gemini 2.5 Flash — 프롬프트 강화
-  - Flux-Schnell — 이미지 생성
+  - DOL LoRA (username260104/dolfluxlora) — 이미지 생성 (Flux 기반 커스텀 학습 모델)
   - Real-ESRGAN — 업스케일
   - Recraft Remove Background — 배경 제거
   - Flux Kontext Pro — 이미지 수정 (Refine)
