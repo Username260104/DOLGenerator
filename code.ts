@@ -1,4 +1,6 @@
 
+import type { PluginToUiSelectionMessage, UiToPluginMessage } from './types/plugin';
+
 // Figma 플러그인 UI 초기화. width/height는 플러그인 패널 크기.
 figma.showUI(__html__, { width: 300, height: 400 });
 
@@ -25,11 +27,35 @@ function uint8ToBase64(bytes: Uint8Array): string {
   return base64;
 }
 
+function isUiToPluginMessage(value: unknown): value is UiToPluginMessage {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const msg = value as Record<string, unknown>;
+  if (msg.type === 'edit-tab-active') {
+    return typeof msg.active === 'boolean';
+  }
+
+  if (msg.type === 'create-image') {
+    return msg.data instanceof Uint8Array;
+  }
+
+  if (msg.type === 'cancel') {
+    return true;
+  }
+
+  return false;
+}
+
 // UI로부터 받은 메시지를 처리하는 메인 핸들러.
 // 'edit-tab-active': Edit 탭 전환 시 선택 감지 on/off
 // 'create-image': 생성/편집된 이미지를 Figma 캔버스에 삽입
 // 'cancel': 플러그인 종료
-figma.ui.onmessage = async (msg) => {
+figma.ui.onmessage = async (msg: unknown) => {
+  if (!isUiToPluginMessage(msg)) {
+    return;
+  }
 
   // Edit 탭 활성/비활성 전환 시 선택 감지 플래그 업데이트
   if (msg.type === 'edit-tab-active') {
@@ -94,7 +120,8 @@ figma.on('selectionchange', async () => {
     // Figma 메인 스레드에는 btoa가 없으므로 커스텀 Base64 인코더 사용
     const base64 = uint8ToBase64(bytes);
     const dataUrl = 'data:image/png;base64,' + base64;
-    figma.ui.postMessage({ type: 'selection-image', data: dataUrl });
+    const message: PluginToUiSelectionMessage = { type: 'selection-image', data: dataUrl };
+    figma.ui.postMessage(message);
   } catch (error) {
     console.error("노드 이미지 추출 실패:", error);
   }
