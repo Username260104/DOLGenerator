@@ -93,3 +93,48 @@ npm run build
 1.  Figma 실행 > **Plugins** > **Development** > **Import plugin from manifest...**
 2.  `manifest.json` 파일 선택.
 3.  플러그인 실행 (Run).
+
+---
+
+## 🧱 현재 아키텍처 (Refactored)
+
+### Frontend 구조
+- `ui.tsx`: App 조합/탭 전환/훅 연결
+- `components/`: `CreateTab`, `EditTab`, `Spinner`
+- `hooks/`: `useCreateActions`, `useEditActions`
+- `services/`: API 호출/이미지 변환/메시지 브리지/응답 가드
+- `constants/`: 모델/프롬프트/스타일
+- `types/`: API, UI, Plugin 메시지 타입
+
+### Backend 구조
+- `server.js`: 엔트리 포인트(환경변수 + 앱 부팅)
+- `server/app.js`: Express 앱 조립
+- `server/routes/`: `replicate`, `gemini`, `proxyImage` 라우트
+- `server/validators.js`: URL/호스트 검증 유틸
+
+### 데이터 흐름
+1. UI에서 사용자 액션 발생
+2. `hooks`가 `services` 호출
+3. `services`가 로컬 프록시(`/api/*`) 경유로 외부 API 호출
+4. 결과 이미지를 DataURL/Uint8Array로 변환
+5. `plugin` 메시지 브리지로 `code.ts`에 전달
+6. `code.ts`가 Figma 캔버스에 삽입/선택 이미지 추출
+
+---
+
+## 📌 리팩토링 진행 현황
+
+기준 계획(8개 축) 대비 현재 진행도: **약 95%**
+
+1. 구조 분리: 완료
+2. 네트워크 계층 공통화: 완료
+3. 타입 강화: 완료 (메시지 타입/응답 가드 적용)
+4. 서버 하드닝: 완료 (URL 검증 + 타임아웃 + 공통 에러 처리 + 로깅)
+5. 상태 관리 단순화: 완료 (Create/Edit 훅 분리)
+6. 스타일 정리: 완료 (스타일/뷰 분리)
+7. 테스트 체계 도입: 완료 (Node test + 서버 라우트/유틸 테스트 추가)
+8. 빌드/운영 설정 정리: 완료 (dev/prod 분리, source map 정책 분리)
+
+### 다음 배치 작업
+- CI 환경에서 `npm install` 후 `npm run lint`, `npm run test`, `npm run build` 실행 검증
+- E2E 수준의 실제 Figma 플러그인 동작 검증(로컬 프록시 연동)
